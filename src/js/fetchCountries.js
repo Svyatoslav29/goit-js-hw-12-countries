@@ -1,10 +1,22 @@
-import axios from "axios";
+export default class ApiService {
+  constructor() {
+    this.searchQuery = '';
+    this.baseUrl = 'https://restcountries.eu/rest/v2/';
+  }
 
-axios.defaults.baseURL = "https://restcountries.eu/rest/v2/name";
+  searchCountryByName() {
+    const url = `${this.baseUrl}name/${this.searchQuery}`;
 
-export const fetchCountries = (searchQuery) => {
-  return axios
-    .get(`/${searchQuery}`)
-    .then((response) => response.data)
-    .catch((err) => console.log(err));
-};
+    if (!this.searchQuery) {
+      return undefined;
+    }
+
+    return fetch(url).then(reply => {
+      if (reply.ok) {
+        return reply.json();
+      }
+
+      throw new Error('Error');
+    });
+  }
+}

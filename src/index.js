@@ -1,37 +1,57 @@
 import './sass/main.scss';
-import _debounce from "lodash.debounce";
-import { error } from "@pnotify/core";
-import "@pnotify/core/dist/PNotify.css";
-import "@pnotify/core/dist/BrightTheme.css";
+import countryMarkup from './templates/article-tpl'
+import countriesList from './templates/countries-list-tpl'
+import debounce from 'lodash.debounce';
+import { alert, error } from '../node_modules/@pnotify/core/dist/PNotify.js';
+import ApiService from './js/fetchCountries';
+import '@pnotify/core/dist/BrightTheme.css';
 
-import getRefs from './js/refs.js';
-import { fetchCountries } from "./js/fetchCountries.js";
-import markupCountryInfo from './js/markup-info.js';
-import markupList from './js/markup-list.js';
+//refs
+const container = document.querySelector('#root'); 
+const countrySearch = document.querySelector('#input');
+const searchResult=document.querySelector('#result');
+countrySearch.addEventListener('input', debounce(handlerSearch, 500));
 
-const refs = getRefs();
-let searchQuery = "";
+const countriesApiService = new ApiService();
 
-refs.search.addEventListener("input", _debounce(onSearchCountry, 500));
+//functions
+function handlerSearch(e) {
+  e.preventDefault();
 
-function onSearchCountry() {
-  refs.countryOverlay.innerHTML = ''; 
-  searchQuery = refs.search.value;
- 
-  fetchCountries(searchQuery)
-    .then(renderCollection)
-    .catch((error) => console.log(error))
+  countriesApiService.searchQuery= countrySearch.value;
+  
+  countriesApiService
+    .searchCountryByName(countriesApiService.searchQuery)
+    .then(countries => createCountryCard(countries))
+    .catch(err => errorCase(err));
 }
 
-function renderCollection(countries) {
-  if (countries.length > 10) {
-    return error({
-      text: "Too many matches found. Please enter a more specific query!",
+
+function renderMarkup(template, countries) {
+  searchResult.insertAdjacentHTML('beforeend', template(countries))
+}
+
+
+
+function createCountryCard(countries) {
+  searchResult.innerHTML = '';
+  if (countries.length < 10 && countries.length > 1) {
+    renderMarkup(countriesList, countries);
+} else if (countries.length === 1) {
+    renderMarkup(countryMarkup, countries);
+  } else if (countries.length > 10) {
+    alert({
+      text: 'Too many matches found. Please enter a more specific query!',
+      delay: 2000,
     });
-  }
-  if (countries.length >= 2 && countries.length <= 10) {
-    markupList(countries);
-    return;
-  }
-  markupCountryInfo(countries);
+} 
+  
+}
+
+function errorCase() { 
+  error({
+    text: 'This country does not exist! Please, check the name and try again',
+    delay: 2000,
+  })
+  
 }
